@@ -25,6 +25,7 @@ import os
 
 try:
     dbDir = os.environ['LXR_DATA_DIR']
+    projDir = os.environ['LXR_PROJ_DIR']
 except KeyError:
     print ('LXR_DATA_DIR needs to be set')
     exit (1)
@@ -32,6 +33,20 @@ except KeyError:
 db = data.DB (dbDir, readonly=True)
 
 from io import BytesIO
+
+import subprocess
+
+def grep (what, path):
+    args_ = (["grep", "-i", "-R", "-n", "-s"] + [what, path])
+    # subprocess.run was introduced in Python 3.5
+    # fall back to subprocess.check_output if it's not available
+    if hasattr(subprocess, 'run'):
+        p = subprocess.run (args_, stdout=subprocess.PIPE)
+        p = p.stdout
+    else:
+        p = subprocess.check_output(args)
+    return p
+
 
 def query (cmd, *args):
     buffer = BytesIO()
@@ -123,6 +138,10 @@ def query (cmd, *args):
         echo (('\nReferenced in ' + str(len(rBuf)) + ' files:\n').encode())
         for path, rlines in sorted (rBuf):
             echo ((path + ': ' + rlines + '\n').encode())
+
+    elif cmd == 'grep':
+        ident = args[0]
+        echo(grep(ident, projDir))
 
     else:
         echo (('Unknown subcommand: ' + cmd + '\n').encode())
