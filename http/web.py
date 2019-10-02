@@ -38,7 +38,6 @@ from collections import OrderedDict
 
 ident = ''
 status = 200
-do_grep = False
 # Split the URL into its components (project, version, cmd, arg)
 m = search ('^/([^/]*)/([^/]*)/([^/]*)(.*)$', os.environ['SCRIPT_URL'])
 
@@ -68,8 +67,12 @@ if m:
         form = cgi.FieldStorage()
         ident2 = form.getvalue ('i')
         grep = form.getvalue('grep')
+
         if grep == 'Yes':
-           do_grep = True
+            f = open("/tmp/grep", "w")
+            f.write("Yes")
+            f.close()
+
         if ident == '' and ident2:
             status = 302
             ident2 = ident2.strip()
@@ -129,6 +132,7 @@ if version == 'latest':
 else:
     tag = version
 
+f = open("/tmp/grep", "r")
 data = {
     'baseurl': '/' + project + '/',
     'tag': tag,
@@ -138,8 +142,22 @@ data = {
     'projects': projects,
     'ident': ident,
     'breadcrumb': '<a class="project" href="'+version+'/source">/</a>',
-    'grep': do_grep
+    'grep': f.read()
 }
+
+import logging
+logging.basicConfig(filename='/tmp/example.log',level=logging.DEBUG)
+logging.debug('grep ' + str(f.read()))
+
+f.close()
+
+f = open("/tmp/grep", "w")
+f.write("No")
+f.close()
+
+import logging
+logging.basicConfig(filename='/tmp/example.log',level=logging.DEBUG)
+logging.debug('data ' + str(data))
 
 lines = do_query ('versions')
 va = OrderedDict()
@@ -284,59 +302,61 @@ if mode == 'source':
 
 
 elif mode == 'ident':
-    data['title'] = project.capitalize ()+' source code: '+ident+' identifier ('+tag+') - Bootlin'
+    if (data['grep'] == "No"):
+        data['title'] = project.capitalize ()+' source code: '+ident+' identifier ('+tag+') - Bootlin'
 
-    lines = do_query ('ident', tag, ident)
-    lines = iter (lines)
+        lines = do_query ('ident', tag, ident)
+        lines = iter (lines)
 
-    print ('<div class="lxrident">')
-    m = search ('Defined in (\d*) file', next (lines))
-    if m:
-        num = int (m.group(1))
-        if num == 0:
-            status = 404
+        print ('<div class="lxrident">')
+        m = search ('Defined in (\d*) file', next (lines))
+        if m:
+            num = int (m.group(1))
+            if num == 0:
+                status = 404
 
-        print ('<h2>Defined in '+str(num)+' files:</h2>')
-        print ('<ul>')
-        for i in range (0, num):
-            l = next (lines)
-            m = search ('^(.*): (\d*) \((.*)\)$', l)
-            f, n, t = m.groups()
-            print ('<li><a href="'+version+'/source/'+f+'#L'+n+'"><strong>'+f+'</strong>, line '+n+' <em>(as a '+t+')</em></a>')
-        print ('</ul>')
+            print ('<h2>Defined in '+str(num)+' files:</h2>')
+            print ('<ul>')
+            for i in range (0, num):
+                l = next (lines)
+                m = search ('^(.*): (\d*) \((.*)\)$', l)
+                f, n, t = m.groups()
+                print ('<li><a href="'+version+'/source/'+f+'#L'+n+'"><strong>'+f+'</strong>, line '+n+' <em>(as a '+t+')</em></a>')
+            print ('</ul>')
 
-        next (lines)
+            next (lines)
 
-        m = search ('Referenced in (\d*) file', next (lines))
-        num = int (m.group(1))
+            m = search ('Referenced in (\d*) file', next (lines))
+            num = int (m.group(1))
 
-        print ('<h2>Referenced in '+str(num)+' files:</h2>')
-        print ('<ul>')
-        for i in range (0, num):
-            l = next (lines)
-            m = search ('^(.*): (.*)$', l)
-            f = m.group (1)
-            ln = m.group (2).split (',')
-            if len (ln) == 1:
-                n = ln[0]
-                print ('<li><a href="'+version+'/source/'+f+'#L'+str(n)+'"><strong>'+f+'</strong>, line '+str(n)+'</a>')
-            else:
-                if num > 100:    # Concise display
-                    n = len (ln)
-                    print ('<li><a href="'+version+'/source/'+f+'"><strong>'+f+'</strong>, <em>'+str(n)+' times</em></a>')
-                else:    # Verbose display
-                    print ('<li><a href="'+version+'/source/'+f+'#L'+str(ln[0])+'"><strong>'+f+'</strong></a>')
-                    print ('<ul>')
-                    for n in ln:
-                        print ('<li><a href="'+version+'/source/'+f+'#L'+str(n)+'">line '+str(n)+'</a>')
-                    print ('</ul>')
-        print ('</ul>')
-    else:
-        if ident != '':
-            print ('<h2>Identifier not used</h2>')
-            status = 404
-    print ('</div>')
-
+            print ('<h2>Referenced in '+str(num)+' files:</h2>')
+            print ('<ul>')
+            for i in range (0, num):
+                l = next (lines)
+                m = search ('^(.*): (.*)$', l)
+                f = m.group (1)
+                ln = m.group (2).split (',')
+                if len (ln) == 1:
+                    n = ln[0]
+                    print ('<li><a href="'+version+'/source/'+f+'#L'+str(n)+'"><strong>'+f+'</strong>, line '+str(n)+'</a>')
+                else:
+                    if num > 100:    # Concise display
+                        n = len (ln)
+                        print ('<li><a href="'+version+'/source/'+f+'"><strong>'+f+'</strong>, <em>'+str(n)+' times</em></a>')
+                    else:    # Verbose display
+                        print ('<li><a href="'+version+'/source/'+f+'#L'+str(ln[0])+'"><strong>'+f+'</strong></a>')
+                        print ('<ul>')
+                        for n in ln:
+                            print ('<li><a href="'+version+'/source/'+f+'#L'+str(n)+'">line '+str(n)+'</a>')
+                        print ('</ul>')
+            print ('</ul>')
+        else:
+            if ident != '':
+                print ('<h2>Identifier not used</h2>')
+                status = 404
+        print ('</div>')
+    elif (data['grep'] == "Yes"):
+        raise Exception
 else:
     print ('Invalid request')
 
