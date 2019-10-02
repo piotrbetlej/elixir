@@ -38,7 +38,7 @@ from collections import OrderedDict
 
 ident = ''
 status = 200
-
+do_grep = False
 # Split the URL into its components (project, version, cmd, arg)
 m = search ('^/([^/]*)/([^/]*)/([^/]*)(.*)$', os.environ['SCRIPT_URL'])
 
@@ -67,6 +67,9 @@ if m:
         ident = arg[1:]
         form = cgi.FieldStorage()
         ident2 = form.getvalue ('i')
+        grep = form.getvalue('grep')
+        if grep == 'Yes':
+           do_grep = True
         if ident == '' and ident2:
             status = 302
             ident2 = ident2.strip()
@@ -134,7 +137,8 @@ data = {
     'project': project,
     'projects': projects,
     'ident': ident,
-    'breadcrumb': '<a class="project" href="'+version+'/source">/</a>'
+    'breadcrumb': '<a class="project" href="'+version+'/source">/</a>',
+    'grep': do_grep
 }
 
 lines = do_query ('versions')
