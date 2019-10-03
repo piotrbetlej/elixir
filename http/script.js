@@ -1,3 +1,13 @@
+function ActionDeterminator() {
+
+  if(document.getElementById('grep').checked == true) {
+    document.getElementById('search_form').action = 'grep';
+    document.getElementById('search_form').method = 'post';
+  }
+
+  return true;
+}
+
 /* Tags menu filter */
 
 var versions = document.querySelector('.versions')
@@ -163,3 +173,4 @@ window.requestAnimationFrame(offsetAnchor)
 window.onload = function () {
   window.requestAnimationFrame(offsetAnchor)
 }
+

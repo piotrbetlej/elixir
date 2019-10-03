@@ -23,14 +23,14 @@
 					{{breadcrumb}}
 				</div>
 				<div class="search">
-					<form method="post" action="{{version}}/ident">
+					<form method="post" action="{{version}}/ident" id="search_form">
                                                 <div style="display:inline-flex;align-items:center;background-color:rgb(221,221,221);padding:0.65rem 1.2rem 1rem 1rem;font-family: 'Ubuntu','monospace';font-size:0.9em;width:auto;height:100%;">
-                                                    <input value="Yes" name="grep" type="checkbox" style="width:auto;">
+                                                    <input value="Yes" id="grep" name="grep" type="checkbox" style="width:auto;">
                                                     <label style="width:auto;padding-left:0.5em;">Grep</label>
                                                  </div>
 
 						<input placeholder="Search Identifier" type="text" name="i" value="{{ident}}"/>
-						<button class="icon-search"><span class="screenreader">Go get it</span></button>
+						<button class="icon-search" onClick="return ActionDeterminator();"><span class="screenreader">Go get it</span></button>
 					</form>
 				</div>
 			</header>
