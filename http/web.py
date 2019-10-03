@@ -132,7 +132,16 @@ if version == 'latest':
 else:
     tag = version
 
-f = open("/tmp/grep", "r")
+f = None
+try:
+    f = open("/tmp/grep", "r")
+    do_grep = f.read()
+except FileNotFoundError:
+    do_grep = "No"
+finally:
+    if (not f is None):
+        f.close()
+
 data = {
     'baseurl': '/' + project + '/',
     'tag': tag,
@@ -142,14 +151,9 @@ data = {
     'projects': projects,
     'ident': ident,
     'breadcrumb': '<a class="project" href="'+version+'/source">/</a>',
-    'grep': f.read()
+    'grep': do_grep
 }
 
-import logging
-logging.basicConfig(filename='/tmp/example.log',level=logging.DEBUG)
-logging.debug('grep ' + str(f.read()))
-
-f.close()
 
 f = open("/tmp/grep", "w")
 f.write("No")
