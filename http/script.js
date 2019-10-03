@@ -1,7 +1,7 @@
 function ActionDeterminator() {
 
   if(document.getElementById('grep').checked == true) {
-    document.getElementById('search_form').action = 'grep';
+    document.getElementById('search_form').action = 'http://' + window.location.hostname + '/grep';
     document.getElementById('search_form').method = 'post';
   }
 
