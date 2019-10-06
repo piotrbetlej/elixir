@@ -52,7 +52,7 @@ if m:
     cmd = m.group (3)
     arg = m.group (4)
 
-    log("project version cmd arg", project + version + cmd + arg)
+    # log("project version cmd arg", project + version + cmd + arg)
     
     if not (project and search ('^[A-Za-z0-9-]+$', project)) \
     or not (version and search ('^[A-Za-z0-9._-]+$', version)):
@@ -117,7 +117,7 @@ projects.sort ()
 
 import sys
 sys.path = [ sys.path[0] + '/..' ] + sys.path
-log("sys.path ", sys.path)
+# log("sys.path ", sys.path)
 import query
 
 def do_query (*args):

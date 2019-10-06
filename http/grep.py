@@ -44,17 +44,18 @@ from collections import OrderedDict
 ident = ''
 status = 200
 # Split the URL into its components (project, version, cmd, arg)
-m = search ('^/(.*)$', os.environ['SCRIPT_URL'])
+m = search ('^/(grep)(.*)$', os.environ['SCRIPT_URL'])
 
 log("Input ", os.environ['SCRIPT_URL'])
 log("Input ", m.group(1))
+log("Input ", m.group(2))
 
 if m:
     cmd = m.group (1)
     if cmd == 'grep':
         form = cgi.FieldStorage()
         word = form.getvalue ('i')
-        log("Word ", word)
+        #log("Word ", word)
 else:
     status = 404
 
@@ -72,11 +73,16 @@ import sys
 sys.path = [ sys.path[0] + '/..' ] + sys.path
 import query
 
-def do_query (*args):
+def call_query(*args):
     cwd = os.getcwd()
     os.chdir ('..')
-    a = query.query (*args)
+    ret = query.query (*args)
     os.chdir (cwd)
+
+    return ret
+
+def call_and_decode_query (*args):
+    a = call_query (*args)
 
     # decode('ascii') fails on special chars
     # FIXME: major hack until we handle everything as bytestrings
@@ -90,7 +96,7 @@ def do_query (*args):
 
 version = "latest"
 if version == 'latest':
-    tag = do_query ('latest')[0]
+    tag = call_query ('latest')[0]
 else:
     tag = version
 
@@ -110,7 +116,7 @@ data = {
 }
 
 
-lines = do_query ('versions')
+lines = call_and_decode_query ('versions')
 va = OrderedDict()
 for l in lines:
     m = search ('^([^ ]*) ([^ ]*) ([^ ]*)$', l)
@@ -151,48 +157,85 @@ for v1k in va:
 
 data['versions'] = v
 
-log("Aloha", "Aloha")
+#log("Aloha", "Aloha")
 
 if cmd == 'grep':
-    data['title'] = project.capitalize ()+' source code: '+ident+' identifier ('+tag+') - Bootlin'
 
-    lines = do_query ('grep', word)
-
-    print ('<div class="lxrident">')
+    m = search('(^/grep)(.*)', os.environ['SCRIPT_URL'])
     
-    num = int (len(lines))
-    if num == 0:
-        status = 404
-    lines = iter (lines)
+    # If only /grep in path
+    filePathInUrl = m.group (2)
+    
+    #log("File Path in URL: ", filePathInUrl)
+    
+    if (not filePathInUrl):
+    
+        data['title'] = project.capitalize ()+' source code: '+ident+' identifier (' + str(tag) + ') - Bootlin'
 
-    print ('<h2>Referenced in '+str(num)+' files:</h2>')
-    print ('<ul>')
-    for i in range (0, num):
-        l = next (lines)
+        lines = call_and_decode_query ('grep', word)
+
+        print ('<div class="lxrident">')
         
-        m = search ('^(.*?):(.*?):(.*)$', l)
+        num = int (len(lines))
+        if num == 0:
+            status = 404
+        lines = iter (lines)
+
+        print ('<h2>Referenced in '+str(num)+' files:</h2>')
+        print ('<ul>')
+        for i in range (0, num):
+            l = next (lines)
+            
+            m = search ('^(.*?):(.*?):(.*)$', l)
+            
+            f  = m.group (1) # File path
+            ln = m.group (2) # Line number
+            lc = m.group (3) # Line content
+    #        log("Path: ", f)
+    #        log("LN: ", ln)
+    #        log("Cont: ", lc)
+            n = int(ln)
+            print ('<li><a href="' + '/grep' + f + '#L' + str(n) +'"><strong>' + f + '</strong>, line: ' + 
+                    str(n) +
+                    '</br> ' +
+                    '<p>' +
+                   str(lc) +
+                    '</p>' +
+                    '</a>')
+        print ('</ul>')
+        print ('</div>')
+
+    else: # If file path not empty (like /grep/a/b/c/d)
+
+        log("File Path in URL: ", filePathInUrl)
+
+        import pygments
+        import pygments.lexers
+        import pygments.formatters
+        code = StringIO()
         
-        f  = m.group (1) # File path
-        ln = m.group (2) # Line number
-        lc = m.group (3) # Line content
-        log("Path: ", f)
-        log("LN: ", ln)
-        log("Cont: ", lc)
-        n = int(ln)
-        print ('<li><a href="'+version+'/source/'+f+'#L'+str(n)+'"><strong>'+f+'</strong>, line: ' + str(n) +
-                '</br> ' +
-                '<p>' +
-               str(lc) +
-                '</p>' +
-                '</a>')
-    print ('</ul>')
-    print ('</div>')
+        import io
+        f = io.open(filePathInUrl, "r")
+        code = f.read()
+        
+        try:
+            lexer = pygments.lexers.guess_lexer_for_filename (filePathInUrl, code)
+        except:
+            lexer = pygments.lexers.get_lexer_by_name ('text')
+        
+        lexer.stripnl = False
+        formatter = pygments.formatters.HtmlFormatter (linenos=True, anchorlinenos=True)
+        result = pygments.highlight (code, lexer, formatter)
+        
+        result = sub ('href="#-(\d+)', 'name="L\\1" id="L\\1" href="' + filePathInUrl +'#L\\1', result)
+        print ('<div class="lxrcode">' + result + '</div>')
 
 else:
     print ('Invalid request')
 
 if status == 404:
     realprint ('Status: 404 Not Found')
+
 
 import jinja2
 loader = jinja2.FileSystemLoader (os.path.join (os.path.dirname (__file__), '../templates/'))
