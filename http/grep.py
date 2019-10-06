@@ -153,60 +153,41 @@ data['versions'] = v
 
 log("Aloha", "Aloha")
 
-if cmd == 'ident':
-    if (data['grep'] == "No"):
-        data['title'] = project.capitalize ()+' source code: '+ident+' identifier ('+tag+') - Bootlin'
+if cmd == 'grep':
+    data['title'] = project.capitalize ()+' source code: '+ident+' identifier ('+tag+') - Bootlin'
 
-        lines = do_query ('ident', tag, ident)
-        lines = iter (lines)
+    lines = do_query ('grep', word)
 
-        print ('<div class="lxrident">')
-        m = search ('Defined in (\d*) file', next (lines))
-        if m:
-            num = int (m.group(1))
-            if num == 0:
-                status = 404
+    print ('<div class="lxrident">')
+    
+    num = int (len(lines))
+    if num == 0:
+        status = 404
+    lines = iter (lines)
 
-            print ('<h2>Defined in '+str(num)+' files:</h2>')
-            print ('<ul>')
-            for i in range (0, num):
-                l = next (lines)
-                m = search ('^(.*): (\d*) \((.*)\)$', l)
-                f, n, t = m.groups()
-                print ('<li><a href="'+version+'/source/'+f+'#L'+n+'"><strong>'+f+'</strong>, line '+n+' <em>(as a '+t+')</em></a>')
-            print ('</ul>')
+    print ('<h2>Referenced in '+str(num)+' files:</h2>')
+    print ('<ul>')
+    for i in range (0, num):
+        l = next (lines)
+        
+        m = search ('^(.*?):(.*?):(.*)$', l)
+        
+        f  = m.group (1) # File path
+        ln = m.group (2) # Line number
+        lc = m.group (3) # Line content
+        log("Path: ", f)
+        log("LN: ", ln)
+        log("Cont: ", lc)
+        n = int(ln)
+        print ('<li><a href="'+version+'/source/'+f+'#L'+str(n)+'"><strong>'+f+'</strong>, line: ' + str(n) +
+                '</br> ' +
+                '<p>' +
+               str(lc) +
+                '</p>' +
+                '</a>')
+    print ('</ul>')
+    print ('</div>')
 
-            next (lines)
-
-            m = search ('Referenced in (\d*) file', next (lines))
-            num = int (m.group(1))
-
-            print ('<h2>Referenced in '+str(num)+' files:</h2>')
-            print ('<ul>')
-            for i in range (0, num):
-                l = next (lines)
-                m = search ('^(.*): (.*)$', l)
-                f = m.group (1)
-                ln = m.group (2).split (',')
-                if len (ln) == 1:
-                    n = ln[0]
-                    print ('<li><a href="'+version+'/source/'+f+'#L'+str(n)+'"><strong>'+f+'</strong>, line '+str(n)+'</a>')
-                else:
-                    if num > 100:    # Concise display
-                        n = len (ln)
-                        print ('<li><a href="'+version+'/source/'+f+'"><strong>'+f+'</strong>, <em>'+str(n)+' times</em></a>')
-                    else:    # Verbose display
-                        print ('<li><a href="'+version+'/source/'+f+'#L'+str(ln[0])+'"><strong>'+f+'</strong></a>')
-                        print ('<ul>')
-                        for n in ln:
-                            print ('<li><a href="'+version+'/source/'+f+'#L'+str(n)+'">line '+str(n)+'</a>')
-                        print ('</ul>')
-            print ('</ul>')
-        else:
-            if ident != '':
-                print ('<h2>Identifier not used</h2>')
-                status = 404
-        print ('</div>')
 else:
     print ('Invalid request')
 

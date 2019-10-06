@@ -37,7 +37,7 @@ from io import BytesIO
 import subprocess
 
 def grep (what, path):
-    args_ = (["grep", "-i", "-R", "-n", "-s"] + [what, path])
+    args_ = (["grep", "-I", "-i", "-R", "-n", "-s"] + [what, path])
     # subprocess.run was introduced in Python 3.5
     # fall back to subprocess.check_output if it's not available
     if hasattr(subprocess, 'run'):
